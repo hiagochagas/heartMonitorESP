@@ -12,6 +12,7 @@
 FirebaseData firebaseData;
 FirebaseAuth firebaseAuth;
 FirebaseConfig firebaseConfig;
+FirebaseJson json;
 
 // Create a PulseOximeter object
 PulseOximeter pox;
@@ -19,11 +20,17 @@ PulseOximeter pox;
 // Time at which the last beat occurred
 uint32_t tsLastReport = 0;
 
+void infiniteLoop() {
+  Serial.println("Restart the ESP");
+  for(;;);
+}
+
 // Callback routine is executed when a pulse is detected
 void onBeatDetected() {
     Serial.println("♥ Beat!");
-    // Grab the updated heart rate and SpO2 levels
-    if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
+    // Grab the updated heart rate and SpO2 levels and send to Firebase
+    if (Firebase.ready() && (millis() - tsLastReport > REPORTING_PERIOD_MS)) {
+        tsLastReport = millis();
         float heartRate = pox.getHeartRate();
         int sp02 = pox.getSpO2();
         Serial.print("Heart rate: ");
@@ -31,7 +38,9 @@ void onBeatDetected() {
         Serial.print(" bpm / SpO2: ");
         Serial.print(sp02);
         Serial.println("%");
-        tsLastReport = millis();
+        json.set("/heartRate", heartRate);
+        json.set("/sp02", sp02);
+        Serial.printf("Set json... %s\n", Firebase.RTDB.setJSON(&firebaseData, "teste", &json) ? "ok" : firebaseData.errorReason().c_str());
     }
 }
 
@@ -57,8 +66,8 @@ void setupFirebase() {
       Serial.println("ok");
     } else {
       Serial.printf("%s\n", firebaseConfig.signer.signupError.message.c_str());
+      infiniteLoop();
     }
-    
     Firebase.begin(&firebaseConfig, &firebaseAuth);
 }
 
@@ -67,7 +76,7 @@ void setupOximeter() {
     // Initialize sensor
     if (!pox.begin()) {
         Serial.println("FAILED");
-        for(;;);
+        infiniteLoop();
     } else {
         Serial.println("SUCCESS");
     }
