@@ -14,6 +14,17 @@ uint32_t tsLastReport = 0;
 // Callback routine is executed when a pulse is detected
 void onBeatDetected() {
     Serial.println("♥ Beat!");
+    // Grab the updated heart rate and SpO2 levels
+    if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
+        float heartRate = pox.getHeartRate();
+        int sp02 = pox.getSpO2();
+        Serial.print("Heart rate: ");
+        Serial.print(heartRate);
+        Serial.print(" bpm / SpO2: ");
+        Serial.print(sp02);
+        Serial.println("%");
+        tsLastReport = millis();
+    }
 }
 
 void setupWifi() {
@@ -51,16 +62,4 @@ void setup() {
 void loop() {
     // Read from the sensor
     pox.update();
-
-    // Grab the updated heart rate and SpO2 levels
-    if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
-        float heartRate = pox.getHeartRate();
-        int sp02 = pox.getSpO2();
-        Serial.print("Heart rate: ");
-        Serial.print(heartRate);
-        Serial.print(" bpm / SpO2: ");
-        Serial.print(sp02);
-        Serial.println("%");
-        tsLastReport = millis();
-    }
 }
