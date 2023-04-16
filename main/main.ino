@@ -33,6 +33,7 @@ void onBeatDetected() {
         tsLastReport = millis();
         float heartRate = pox.getHeartRate();
         int sp02 = pox.getSpO2();
+        pox.shutdown();
         Serial.print("Heart rate: ");
         Serial.print(heartRate);
         Serial.print(" bpm / SpO2: ");
@@ -40,7 +41,8 @@ void onBeatDetected() {
         Serial.println("%");
         json.set("/heartRate", heartRate);
         json.set("/sp02", sp02);
-        Serial.printf("Set json... %s\n", Firebase.RTDB.setJSON(&firebaseData, "teste", &json) ? "ok" : firebaseData.errorReason().c_str());
+        Serial.printf("Send to firebase... %s\n", Firebase.RTDB.setJSON(&firebaseData, "user", &json) ? "ok" : firebaseData.errorReason().c_str());
+        pox.resume();
     }
 }
 
@@ -51,8 +53,8 @@ void setupWifi() {
       Serial.print(".");
       delay(300);
     }
-    Serial.println("Connected with IP: \n");
-    Serial.println(WiFi.localIP());
+    Serial.println("\nConnected with IP ");
+    Serial.print(WiFi.localIP());
 }
 
 void setupFirebase() {
@@ -63,7 +65,7 @@ void setupFirebase() {
     firebaseConfig.token_status_callback = tokenStatusCallback; 
 
     if (Firebase.signUp(&firebaseConfig, &firebaseAuth, "", "")){
-      Serial.println("ok");
+      Serial.println("\nFirebase initilization ok");
     } else {
       Serial.printf("%s\n", firebaseConfig.signer.signupError.message.c_str());
       infiniteLoop();
