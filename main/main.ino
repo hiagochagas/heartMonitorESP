@@ -1,9 +1,17 @@
 #include <Wire.h>
 #include "MAX30100_PulseOximeter.h"
 #include <ESP8266WiFi.h>
+#include <Firebase_ESP_Client.h>
+#include "addons/TokenHelper.h"
+#include "addons/RTDBHelper.h"
 #include "confidentials.h"
 
 #define REPORTING_PERIOD_MS     1000
+
+// Firebase objects
+FirebaseData firebaseData;
+FirebaseAuth firebaseAuth;
+FirebaseConfig firebaseConfig;
 
 // Create a PulseOximeter object
 PulseOximeter pox;
@@ -38,6 +46,22 @@ void setupWifi() {
     Serial.println(WiFi.localIP());
 }
 
+void setupFirebase() {
+    firebaseConfig.api_key = API_KEY;
+    firebaseConfig.database_url = DATABASE_URL;
+    Firebase.reconnectWiFi(true);
+    firebaseData.setResponseSize(4096);
+    firebaseConfig.token_status_callback = tokenStatusCallback; 
+
+    if (Firebase.signUp(&firebaseConfig, &firebaseAuth, "", "")){
+      Serial.println("ok");
+    } else {
+      Serial.printf("%s\n", firebaseConfig.signer.signupError.message.c_str());
+    }
+    
+    Firebase.begin(&firebaseConfig, &firebaseAuth);
+}
+
 void setupOximeter() {
     Serial.print("Initializing pulse oximeter..");
     // Initialize sensor
@@ -56,6 +80,7 @@ void setupOximeter() {
 void setup() {
     Serial.begin(115200);
     setupWifi();
+    setupFirebase();
     setupOximeter();
 }
 
